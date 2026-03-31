@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
-
-import { io, Socket } from "socket.io-client"
+import { useEffect, useRef, useState } from 'react'
 
 import './App.css'
 
@@ -9,10 +7,10 @@ interface MessageInputFormProps {
   setMessage: React.Dispatch<React.SetStateAction<string>>,
   setMessageList: React.Dispatch<React.SetStateAction<string[]>>
   textfieldID: string,
-  ioSocket: Socket | null,
+  webSocket: WebSocket | null,
 }
 
-const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage, setMessageList, textfieldID, ioSocket }) => {
+const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage, setMessageList, textfieldID, webSocket }) => {
 
   const handleMessageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
 
@@ -23,9 +21,9 @@ const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage
   const handleMessageSubmit = (e: React.SubmitEvent) => {
     e.preventDefault()
 
-    if (ioSocket && message.trim()) {
+    if (webSocket && message.trim()) {
 
-      ioSocket.emit("message", message)
+      webSocket.send(message)
       setMessageList(prev => [...prev, message])
       setMessage("")
       
@@ -61,24 +59,36 @@ function App() {
   
   const websocketServerURL = "ws://127.01.01:8000"
 
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const socketRef = useRef<WebSocket | null>(null)
 
 
   useEffect(() => {
 
-    const socketInstance: Socket = io(websocketServerURL)
+    const socketInstance: WebSocket | null = new WebSocket(websocketServerURL)
 
-    setSocket(socketInstance);
+    socketRef.current = socketInstance;
 
-    socketInstance.on("message", (msg) => {
+    socketInstance.onopen = () => {
+      console.log('Client has been connected....');
+    };
 
-      setMessageList(prev => [...prev, msg])
+    socketInstance.onmessage = (event) => {
 
-    })
+      setMessageList(prev => [...prev, event.data])
+
+    }
+
+    socketInstance.onclose = () => {
+      console.log('Client has been disconnected');
+    };
+
+    socketInstance.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
 
     return(() => {
 
-      socketInstance.disconnect()
+      socketInstance.close()
 
     })
 
@@ -101,7 +111,7 @@ function App() {
         setMessage={setMessage} 
         setMessageList={setMessageList}
         textfieldID="messageTextInput" 
-        ioSocket={socket}
+        webSocket={socketRef.current}
         />
     </>
   )
