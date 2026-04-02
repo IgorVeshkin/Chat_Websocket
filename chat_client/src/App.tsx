@@ -57,7 +57,7 @@ function App() {
   const [messageList, setMessageList] = useState<string[]>([])
   const [message, setMessage] = useState<string>("")
   
-  const websocketServerURL = "ws://127.01.01:8000"
+  const websocketServerURL = "ws://localhost:8000/ws/testing/"
 
   const socketRef = useRef<WebSocket | null>(null)
 
