@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import './App.css'
 
+import useFetchData from './hooks/useFetchData';
+
 interface MessageInputFormProps {
   message: string,
   setMessage: React.Dispatch<React.SetStateAction<string>>,
-  setMessageList: React.Dispatch<React.SetStateAction<string[]>>
+  setMessageList: React.Dispatch<React.SetStateAction<string[]>>,
   textfieldID: string,
   webSocket: WebSocket | null,
 }
@@ -57,14 +59,39 @@ function App() {
   const [messageList, setMessageList] = useState<string[]>([])
   const [message, setMessage] = useState<string>("")
   
-  const websocketServerURL = "ws://localhost:8000/ws/testing/"
+
+  // Кастомный хук для получении данных текущего чата
+  interface Chatroom {
+    chatroom: {
+      uuid: string,
+      title: string,
+      coverImage: string,
+      users_list: Array<Object>,
+      created_by: Object,
+    }
+  }
+
+  const chatroomURL = useRef<string>("http://127.0.0.1:8000/api/chatroom/")
+
+  const { data: chatroomData, loading: chatroomLoading, error: chatroomError } = useFetchData<Chatroom>(chatroomURL.current)
+
+  // Websocket
+  var websocketServerURL = "ws://localhost:8000/ws/testing/?chatroom_uuid="
 
   const socketRef = useRef<WebSocket | null>(null)
 
 
+  // Работа websocket
   useEffect(() => {
 
-    const socketInstance: WebSocket | null = new WebSocket(websocketServerURL)
+    // Данные uuid чата не еще не получены
+    if (!chatroomData?.chatroom?.uuid) {
+      return;
+    }
+
+    const websocketServerURLWithParams = `${websocketServerURL}${chatroomData?.chatroom.uuid}`
+
+    const socketInstance: WebSocket | null = new WebSocket(websocketServerURLWithParams)
 
     socketRef.current = socketInstance;
 
@@ -92,12 +119,25 @@ function App() {
 
     })
 
-  }, [])
+  }, [chatroomData])
 
   return (
     <>
       <section>
         <h2>If you see this message then everything works fine</h2>
+        {!chatroomLoading &&
+        
+          <section>
+            <h2>{ chatroomData?.chatroom?.title }</h2>
+            {/* <img src={`http://127.0.0.1:8000${ chatroomData?.chatroom?.coverImage }`} /> */}
+          </section>
+
+        }
+
+        {chatroomError && 
+          <h3 style={{ color: 'red', }}>Ошибка получения данных чата: { chatroomError } </h3>
+        }
+        
 
         {
           messageList?.map((msg: string) => (
