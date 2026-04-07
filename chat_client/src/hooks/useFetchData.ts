@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+import axios from 'axios'
+
 const useFetchData = <T,>(api_endpoint_url: string): { data: T | null, loading: boolean, error: string | null } => {
 
     const [data, setData] = useState<T | null>(null);
@@ -15,20 +17,19 @@ const useFetchData = <T,>(api_endpoint_url: string): { data: T | null, loading: 
         
         try {
 
-            const response = await fetch(api_endpoint_url);
-            
-            if(!response.ok) {
-                
-                throw new Error("Fetching wasn't successful")
-            }
+            const response = await axios.get(api_endpoint_url);
 
-            const response_json = await response.json()
+            const response_data = response.data
 
-            setData(response_json)
+            setData(response_data)
 
         } catch (e: any) {
-            
-            const errorMessage = e instanceof Error ? e.message : String(e);
+
+            const errorMessage = axios.isAxiosError(e)
+            ? e.response
+            ? `Error: ${e.response.status} - ${e.response.statusText}`
+            : e.message
+            : String(e);
 
             setError(errorMessage)
 
