@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 
 import axios from 'axios'
 
+import loggedAPI from "../api/axiosInstances";
+
 const useFetchData = <T,>(api_endpoint_url: string): { data: T | null, loading: boolean, error: string | null } => {
 
     const [data, setData] = useState<T | null>(null);
@@ -17,7 +19,7 @@ const useFetchData = <T,>(api_endpoint_url: string): { data: T | null, loading: 
         
         try {
 
-            const response = await axios.get(api_endpoint_url);
+            const response = await loggedAPI.get(api_endpoint_url);
 
             const response_data = response.data
 

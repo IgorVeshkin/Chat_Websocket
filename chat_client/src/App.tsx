@@ -4,12 +4,16 @@ import {BrowserRouter, Routes, Route} from 'react-router-dom';
 import ChatroomPage from "./pages/ChatroomPage";
 import LoginPage from "./pages/LoginPage";
 
+import ProtectedRoute from './ProtectedRoute';
+
 export default function App() {
     return (
         <BrowserRouter>
             <Routes>
                 {/* Страница чата */}
-                <Route path="*" element={<ChatroomPage/>} />
+                <Route element={<ProtectedRoute />}>
+                    <Route path="*" element={<ChatroomPage/>} />
+                </Route>
 
                 {/* Страница логина */}
                 <Route path="login" element={<LoginPage/>} />

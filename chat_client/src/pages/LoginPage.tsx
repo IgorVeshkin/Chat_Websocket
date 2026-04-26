@@ -1,5 +1,9 @@
 import { useReducer } from 'react'
 
+import { useNavigate } from "react-router-dom"
+
+import loggedAPI from "../api/axiosInstances"
+
 
 interface LoginState {
    username: string,
@@ -56,11 +60,54 @@ function LoginPage() {
     const [authData, authDataDispatcher] = useReducer(loginPageReducer, initialState)
 
 
-    const handleSubmit = (e: React.SubmitEvent) => {
+    const navigation = useNavigate()
+
+
+    const handleSubmit = async (e: React.SubmitEvent) => {
 
         e.preventDefault();
 
         console.log("Username: " + authData.username + "\n" + "Password: " + authData.password)
+
+        console.log(authData)
+
+
+        try {
+
+            const response = await loggedAPI.post("http://127.0.0.1:8000/api/login/", 
+                authData, 
+                {
+                    headers: {
+                        xsrfCookieName: 'XSRF-TOKEN',
+                        xsrfHeaderName: 'X-XSRF-TOKEN',
+                        
+                        "Content-Type": "application/json",
+                    }
+                }
+
+            )
+
+             if (response.status === 200 || response.status === 201) {
+
+                const tokens = response.data 
+
+                localStorage.setItem("access", tokens.access);
+                localStorage.setItem("refresh", tokens.refresh);
+
+                navigation("/")
+
+             }
+
+
+        } catch (e: any) {
+
+            console.log("Error: " + e)
+
+        } finally {
+
+
+        }
+        
 
     }
 

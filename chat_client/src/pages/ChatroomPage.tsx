@@ -2,15 +2,27 @@ import { useEffect, useRef, useState } from 'react'
 
 import useFetchData from '../hooks/useFetchData';
 
+import { useLoggedUserData } from '../ProtectedRoute';
+
+// Понять как лучше переместить тип данных залогиненого пользователя
+interface loggedUser {
+    username: string,
+    first_name: string,
+    last_name: string,
+    is_auth: boolean,
+}
+
+
 interface MessageInputFormProps {
   message: string,
   setMessage: React.Dispatch<React.SetStateAction<string>>,
   setMessageList: React.Dispatch<React.SetStateAction<string[]>>,
   textfieldID: string,
   webSocket: WebSocket | null,
+  userData: loggedUser | null,
 }
 
-const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage, setMessageList, textfieldID, webSocket }) => {
+const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage, setMessageList, textfieldID, webSocket, userData }) => {
 
   const handleMessageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
 
@@ -24,7 +36,7 @@ const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage
     if (webSocket && message.trim()) {
 
       webSocket.send(message)
-      setMessageList(prev => [...prev, message])
+      setMessageList(prev => [...prev, "@" + userData?.username + ": " + message])
       setMessage("")
       
     }
@@ -56,6 +68,8 @@ function ChatroomPage() {
 
   const [messageList, setMessageList] = useState<string[]>([])
   const [message, setMessage] = useState<string>("")
+
+  const { loggedUserData } = useLoggedUserData()
   
 
   // Кастомный хук для получении данных текущего чата
@@ -137,6 +151,9 @@ function ChatroomPage() {
         }
         
 
+        { loggedUserData && <p>Currently logged user: @{loggedUserData.username}</p> }  
+
+
         {
           messageList?.map((msg: string) => (
             <h3>{msg}</h3>
@@ -150,6 +167,7 @@ function ChatroomPage() {
         setMessageList={setMessageList}
         textfieldID="messageTextInput" 
         webSocket={socketRef.current}
+        userData={loggedUserData}
         />
     </>
   )
