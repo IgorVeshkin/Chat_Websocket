@@ -2,7 +2,7 @@ import { Navigate, Outlet, useOutletContext } from "react-router-dom";
 
 import { useState, useEffect } from "react";
 
-import loggedAPI from "./api/axiosInstances";
+import { loggedCookiesAPI } from "./api/axiosInstances";
 
 
 interface loggedUser {
@@ -26,7 +26,7 @@ const ProtectedRoute = ( Route: any ) => {
 
         const getUser = async () => {
 
-            await loggedAPI.get("http://127.0.0.1:8000/api/check-auth/").then(response => {
+            await loggedCookiesAPI.get("http://127.0.0.1:8000/api/check-auth/").then(response => {
                 
                 setIsAuth(response.data.is_auth);
 
@@ -35,6 +35,8 @@ const ProtectedRoute = ( Route: any ) => {
                 console.log("Данные успешно получены: " + JSON.stringify(response.data));
 
             }).catch(error => {
+
+                console.log(error);
 
                 setIsAuth(false);
 

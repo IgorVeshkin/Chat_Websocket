@@ -2,7 +2,7 @@ import { useReducer } from 'react'
 
 import { useNavigate } from "react-router-dom"
 
-import loggedAPI from "../api/axiosInstances"
+import { loggedCookiesAPI } from "../api/axiosInstances"
 
 
 interface LoginState {
@@ -72,27 +72,22 @@ function LoginPage() {
         console.log(authData)
 
 
-        try {
+        try { 
 
-            const response = await loggedAPI.post("http://127.0.0.1:8000/api/login/", 
+            const response = await loggedCookiesAPI.post("http://127.0.0.1:8000/api/login_v2/", 
                 authData, 
                 {
-                    headers: {
-                        xsrfCookieName: 'XSRF-TOKEN',
-                        xsrfHeaderName: 'X-XSRF-TOKEN',
-                        
+                    headers: {                        
                         "Content-Type": "application/json",
-                    }
+                    },
                 }
 
             )
 
-             if (response.status === 200 || response.status === 201) {
 
-                const tokens = response.data 
+            if (response.status === 200 || response.status === 201) {
 
-                localStorage.setItem("access", tokens.access);
-                localStorage.setItem("refresh", tokens.refresh);
+                console.log(response.data)
 
                 navigation("/")
 
@@ -100,8 +95,7 @@ function LoginPage() {
 
 
         } catch (e: any) {
-
-            console.log("Error: " + e)
+            console.log(e)
 
         } finally {
 

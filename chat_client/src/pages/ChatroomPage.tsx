@@ -13,10 +13,20 @@ interface loggedUser {
 }
 
 
+type messageType = {
+    username: string,
+    first_name: string,
+    last_name: string,
+    is_auth: boolean,
+    message: string,
+    message_datetime: string,
+}
+
+
 interface MessageInputFormProps {
   message: string,
   setMessage: React.Dispatch<React.SetStateAction<string>>,
-  setMessageList: React.Dispatch<React.SetStateAction<string[]>>,
+  setMessageList: React.Dispatch<React.SetStateAction<messageType[]>>,
   textfieldID: string,
   webSocket: WebSocket | null,
   userData: loggedUser | null,
@@ -35,8 +45,22 @@ const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage
 
     if (webSocket && message.trim()) {
 
-      webSocket.send(message)
-      setMessageList(prev => [...prev, "@" + userData?.username + ": " + message])
+      const pad = (num: number | string) => String(num).padStart(2, '0');
+
+      const msg_date = new Date()
+      const day = pad(msg_date.getDate())
+      const month = pad(msg_date.getMonth() + 1)
+      const year = msg_date.getFullYear()
+      const hours = pad(msg_date.getHours())
+      const minutes = pad(msg_date.getMinutes())
+
+      const formattedDateTime = `${day}.${month}.${year} ${hours}:${minutes}`
+
+      const dataToBeSent = JSON.stringify({...userData, message: message, message_datetime: formattedDateTime})
+
+      webSocket.send(dataToBeSent)
+
+      setMessageList(prev => [...prev, JSON.parse(dataToBeSent)])
       setMessage("")
       
     }
@@ -66,7 +90,7 @@ const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage
 
 function ChatroomPage() {
 
-  const [messageList, setMessageList] = useState<string[]>([])
+  const [messageList, setMessageList] = useState<messageType[]>([])
   const [message, setMessage] = useState<string>("")
 
   const { loggedUserData } = useLoggedUserData()
@@ -88,7 +112,8 @@ function ChatroomPage() {
   const { data: chatroomData, loading: chatroomLoading, error: chatroomError } = useFetchData<Chatroom>(chatroomURL.current)
 
   // Websocket
-  var websocketServerURL = "ws://localhost:8000/ws/testing/?chatroom_uuid="
+  // Все url-адреса должны быть 127.0.0.1, а не localhost, чтобы cookies передавались через websocket
+  var websocketServerURL = "ws://127.0.0.1:8000/ws/testing/?chatroom_uuid="
 
   const socketRef = useRef<WebSocket | null>(null)
 
@@ -96,7 +121,7 @@ function ChatroomPage() {
   // Работа websocket
   useEffect(() => {
 
-    // Данные uuid чата не еще не получены
+    // Данные uuid чата еще не получены
     if (!chatroomData?.chatroom?.uuid) {
       return;
     }
@@ -113,7 +138,7 @@ function ChatroomPage() {
 
     socketInstance.onmessage = (event) => {
 
-      setMessageList(prev => [...prev, event.data])
+      setMessageList(prev => [...prev, JSON.parse(event.data)])
 
     }
 
@@ -153,12 +178,16 @@ function ChatroomPage() {
 
         { loggedUserData && <p>Currently logged user: @{loggedUserData.username}</p> }  
 
-
         {
-          messageList?.map((msg: string) => (
-            <h3>{msg}</h3>
+          messageList?.map((msg: messageType) => (
+            
+            <section style={{ width: "fit-content", display: "flex", flexDirection: "column", rowGap: "0.5em", backgroundColor: "whitesmoke", border: "1px lightgray solid", borderRadius: "6px", padding: "0.5em 0.35em 0.5em 0.35em", margin: "0.5em 0 0.5em 0", }}>
+              <div style={{ margin: "0.15em 0 0 0" }}>@{msg.username}</div>
+              <div style={{ margin: "0.15em 0 0 0" }}>{msg.message}</div>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>{msg.message_datetime}</div>
+            </section>
           ))
-        }
+        }        
       </section>
 
       <MessageInputForm 

@@ -33,27 +33,6 @@ loggedAPI.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 );
 
 
-/* loggedAPI.interceptors.response.use(
-
-  (response) => response,
-
-  (error) => {
-
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-        console.log('401 Unauthorized detected in interceptor');
-      
-        localStorage.removeItem('access');
-        localStorage.removeItem('refresh');
-
-        window.location.href = '/login';
-
-    }
-
-    return Promise.reject(error);
-
-  }
-); */
-
 // Автоматическое обновление access-токена, если он был просрочен, используется текущий axios-instance
 loggedAPI.interceptors.response.use(
 
@@ -108,54 +87,79 @@ loggedAPI.interceptors.response.use(
 });
 
 
-/*
-
-// Response interceptor
-loggedAPI.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as CustomAxiosRequestConfig;
-
-    // Check for 401 Unauthorized
-    if (error.response?.status === 401 && !originalRequest._retry && localStorage.getItem("refresh")) {
-      originalRequest._retry = true; // avoid infinite loops
-
-      try {
-        const refreshToken = localStorage.getItem("refresh");
-
-        // Call refresh token API
-        const response = await axios.post("http://127.0.0.1:8000/api/refresh-token", {
-          refresh: refreshToken,
-        });
-
-        const newAccessToken = response.data.access;
-
-        localStorage.setItem("access", newAccessToken);
-
-        // Update original request headers with new token
-        originalRequest.headers = originalRequest.headers || {};
-        (originalRequest.headers as any).Authorization = `Bearer ${newAccessToken}`;
-
-        // Retry original request with new token
-        return loggedAPI(originalRequest);
-
-      } catch (refreshError) {
-        // Refresh token failed, remove tokens and redirect to login
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        window.location.href = "/login";
-
-        // reject the promise
-        return Promise.reject(refreshError);
-      }
-    }
-
-    // If error is not handled above, reject as usual
-    return Promise.reject(error);
-  }
-);
-
-*/
 
 
-export default loggedAPI;
+const loggedCookiesAPI = axios.create({
+    baseURL: "/",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    withCredentials: true,
+});
+
+
+// Автоматическое обновление access-токена, если он был просрочен, используются cookies
+loggedCookiesAPI.interceptors.response.use(
+
+    (response) => response,
+
+    async (error: AxiosError) => {
+        const originalRequest = error.config as CustomAxiosRequestConfig;
+
+        // Если пользователь не найден
+        if(error.response && error.response.status === 404) {
+
+          console.error(error.response.data);
+
+          return Promise.reject(error);
+
+        }
+
+
+        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+
+            originalRequest._retry = true;
+
+            try {
+
+                await axios.post("http://127.0.0.1:8000/api/refresh-token_v2/", {}, 
+                  { withCredentials: true, }
+                );
+
+                console.log("Refreshed access token....")
+
+
+                return loggedCookiesAPI(originalRequest);
+
+            } catch (refreshError: any) {
+                
+                // console.log(refreshError.response)
+
+                // if (refreshError.response) {
+                //   console.log('Статус кода:', error.response.status);
+                //   console.log('Данные ошибки:', error.response.data);
+                //   console.log('Заголовки ответа:', error.response.headers);
+                // }
+
+                await axios.post("http://127.0.0.1:8000/api/logout_v2/", {}, 
+                  { withCredentials: true, }
+                );
+
+                console.log("Redirecting to login page. Refresh token might be expired....")
+
+                // window.location.href = "/login";
+
+                return Promise.reject(refreshError);
+            }
+
+        }
+
+        return Promise.reject(error);
+
+});
+
+
+
+
+
+export { loggedAPI, loggedCookiesAPI };

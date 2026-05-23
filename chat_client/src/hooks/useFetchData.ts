@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import axios from 'axios'
 
-import loggedAPI from "../api/axiosInstances";
+import { loggedCookiesAPI } from "../api/axiosInstances";
 
 const useFetchData = <T,>(api_endpoint_url: string): { data: T | null, loading: boolean, error: string | null } => {
 
@@ -19,7 +19,7 @@ const useFetchData = <T,>(api_endpoint_url: string): { data: T | null, loading: 
         
         try {
 
-            const response = await loggedAPI.get(api_endpoint_url);
+            const response = await loggedCookiesAPI.get(api_endpoint_url);
 
             const response_data = response.data
 
