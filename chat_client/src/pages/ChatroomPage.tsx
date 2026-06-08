@@ -32,6 +32,23 @@ interface MessageInputFormProps {
   userData: loggedUser | null,
 }
 
+// Функция для форматирования даты и времени сообщений на frontend-е
+const datetimeParser = (msg_date: Date) => {
+
+    const pad = (num: number | string) => String(num).padStart(2, '0');
+
+    const message_date = new Date(msg_date)
+    
+    const day = pad(message_date.getDate())
+    const month = pad(message_date.getMonth() + 1)
+    const year = message_date.getFullYear()
+    const hours = pad(message_date.getHours())
+    const minutes = pad(message_date.getMinutes())
+
+    return `${day}.${month}.${year} ${hours}:${minutes}`
+
+}
+
 const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage, setMessageList, textfieldID, webSocket, userData }) => {
 
   const handleMessageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,22 +62,15 @@ const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage
 
     if (webSocket && message.trim()) {
 
-      const pad = (num: number | string) => String(num).padStart(2, '0');
-
       const msg_date = new Date()
-      const day = pad(msg_date.getDate())
-      const month = pad(msg_date.getMonth() + 1)
-      const year = msg_date.getFullYear()
-      const hours = pad(msg_date.getHours())
-      const minutes = pad(msg_date.getMinutes())
 
-      const formattedDateTime = `${day}.${month}.${year} ${hours}:${minutes}`
+      const formattedDateTime = datetimeParser(msg_date)
 
-      const dataToBeSent = JSON.stringify({...userData, message: message, message_datetime: formattedDateTime})
+      const dataToBeSent = JSON.stringify({...userData, message: message, message_datetime: msg_date})
 
       webSocket.send(dataToBeSent)
 
-      setMessageList(prev => [...prev, JSON.parse(dataToBeSent)])
+      setMessageList(prev => [...prev, {...JSON.parse(dataToBeSent), message_datetime: formattedDateTime }])
       setMessage("")
       
     }
@@ -75,7 +85,7 @@ const MessageInputForm: React.FC<MessageInputFormProps> = ({ message, setMessage
 
   }
 
-  return (<form onSubmit={handleMessageSubmit} ><input 
+  return (<form onSubmit={handleMessageSubmit} style={{ marginBottom: 10, }}><input 
             id={textfieldID}
             value={message}
             onChange={handleMessageInput}
@@ -92,6 +102,32 @@ function ChatroomPage() {
 
   const [messageList, setMessageList] = useState<messageType[]>([])
   const [message, setMessage] = useState<string>("")
+
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  const isFirstRender = useRef<boolean>(true)
+
+  // Каждый раз как добавляется новое сообщение прокручиваю вниз переписку к новому сообщению (side-effect)
+  useEffect(()=> {
+
+    // Не делаю прокрутку при первоначальной подгрузке страницы 
+    if (isFirstRender.current) {
+
+      isFirstRender.current = false
+      return
+
+    }
+
+    if (messagesContainerRef.current) {
+      
+      messagesContainerRef.current?.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      })
+
+    }
+
+  }, [messageList])
 
   const { loggedUserData } = useLoggedUserData()
   
@@ -138,7 +174,9 @@ function ChatroomPage() {
 
     socketInstance.onmessage = (event) => {
 
-      setMessageList(prev => [...prev, JSON.parse(event.data)])
+      const message = JSON.parse(event.data)
+
+      setMessageList(prev => [...prev, {...message, message_datetime: datetimeParser(message.message_datetime)}])
 
     }
 
@@ -159,7 +197,7 @@ function ChatroomPage() {
   }, [chatroomData])
 
   return (
-    <>
+    <div className="page">
       <section>
         <h2>If you see this message then everything works fine</h2>
         {!chatroomLoading &&
@@ -178,17 +216,21 @@ function ChatroomPage() {
 
         { loggedUserData && <p>Currently logged user: @{loggedUserData.username}</p> }  
 
+      </section>
+        
+      <section id="messagesContainer" ref={messagesContainerRef}>
         {
           messageList?.map((msg: messageType) => (
             
-            <section style={{ width: "fit-content", display: "flex", flexDirection: "column", rowGap: "0.5em", backgroundColor: "whitesmoke", border: "1px lightgray solid", borderRadius: "6px", padding: "0.5em 0.35em 0.5em 0.35em", margin: "0.5em 0 0.5em 0", }}>
+            <section style={{ boxSizing: "border-box", width: "fit-content", maxWidth: "100%", display: "flex", flexDirection: "column", rowGap: "0.5em", backgroundColor: "whitesmoke", border: "1px lightgray solid", borderRadius: "6px", padding: "0.5em 0.35em 0.5em 0.35em", margin: "0.5em 0 0.5em 0", }}>
               <div style={{ margin: "0.15em 0 0 0" }}>@{msg.username}</div>
-              <div style={{ margin: "0.15em 0 0 0" }}>{msg.message}</div>
+              <div style={{ margin: "0.15em 0 0 0", height: "min-content" }}>{msg.message}</div>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>{msg.message_datetime}</div>
             </section>
           ))
-        }        
-      </section>
+        }   
+      </section>     
+      
 
       <MessageInputForm 
         message={message} 
@@ -198,7 +240,7 @@ function ChatroomPage() {
         webSocket={socketRef.current}
         userData={loggedUserData}
         />
-    </>
+    </div>
   )
 }
 

@@ -6,6 +6,8 @@ import LoginPage from "./pages/LoginPage";
 
 import ProtectedRoute from './ProtectedRoute';
 
+import "./App.css";
+
 export default function App() {
     return (
         <BrowserRouter>
