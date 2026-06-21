@@ -220,14 +220,19 @@ function ChatroomPage() {
         
       <section id="messagesContainer" ref={messagesContainerRef}>
         {
-          messageList?.map((msg: messageType) => (
+          messageList?.map((msg: messageType) => {
             
-            <section style={{ boxSizing: "border-box", width: "fit-content", maxWidth: "100%", display: "flex", flexDirection: "column", rowGap: "0.5em", backgroundColor: "whitesmoke", border: "1px lightgray solid", borderRadius: "6px", padding: "0.5em 0.35em 0.5em 0.35em", margin: "0.5em 0 0.5em 0", }}>
+            const isMyMessage = loggedUserData?.username === msg.username
+
+            return (
+            <section style={{ alignSelf: isMyMessage ? "flex-start" : "flex-end", boxSizing: "border-box", width: "fit-content", maxWidth: "100%", display: "flex", flexDirection: "column", rowGap: "0.5em", backgroundColor: isMyMessage ? "#E5FDE2" : "#E3F2FD", border: "1px lightgray solid", borderRadius: "6px", padding: "0.5em 0.35em 0.5em 0.35em", margin: "0.5em 0 0.5em 0", }}>
               <div style={{ margin: "0.15em 0 0 0" }}>@{msg.username}</div>
               <div style={{ margin: "0.15em 0 0 0", height: "min-content" }}>{msg.message}</div>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>{msg.message_datetime}</div>
             </section>
-          ))
+            )
+
+          })
         }   
       </section>     
       
