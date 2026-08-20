@@ -1,6 +1,6 @@
 const http = require("http");
 
-const socketIo = require('socket.io');
+const websocket = require('ws');
 
 const url = require("url");
 
@@ -22,15 +22,16 @@ httpServer.listen(ws_port, () => {
 })
 
 
-const websocket_server = socketIo(httpServer, {
-  cors: {
+const websocket_server = new websocket.Server({
+    server: httpServer,
+    cors: {
     origin: "*",
   }
 });
 
 
 // Клиент подключился к серверу
-websocket_server.on("connection", (socket) => {
+websocket_server.on("connection", (connection, request) => {
 
     console.log("New client has been connected....");
 
@@ -40,16 +41,20 @@ websocket_server.on("connection", (socket) => {
 
 
     // Клиент отправил сообщение
-    socket.on("message", (message) => {
+    connection.on("message", (message) => {
 
         console.log(`Server received the message: ${message}`);
-
-        socket.broadcast.emit("message", message);        
+        
+        // Отправляю сообщение всем клиентам
+        websocket_server.clients.forEach((client) => {
+        if (client !== connection && client.readyState === WebSocket.OPEN) {
+            client.send(message.toString());
+        }})   
 
     });
 
     // Клиент отключился от сервера
-    socket.on("close", () => {
+    connection.on("close", () => {
         console.log("Client has been disconnected from server");
 
     });
